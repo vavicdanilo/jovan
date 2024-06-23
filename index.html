@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Slot Igrica</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .slot-machine {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .reels {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .reel-row {
+            display: flex;
+            justify-content: center;
+            margin: 5px 0;
+        }
+
+        .reel {
+            font-size: 2em;
+            margin: 0 5px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #eee;
+            border-radius: 5px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        #bet-amount {
+            padding: 10px;
+            font-size: 1em;
+            width: calc(100% - 100px);
+            max-width: 200px;
+        }
+
+        #spin-button, #gamble-button, #choose-red, #choose-black {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 5px;
+            width: calc(50% - 20px);
+            max-width: 100px;
+        }
+
+        #result, #balance {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        #gamble-button, #choose-red, #choose-black {
+            display: none;  /* Initial hidden state */
+        }
+
+        .reel img {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .reel {
+                font-size: 1.5em;
+                width: 40px;
+                height: 40px;
+            }
+
+            #bet-amount, #spin-button, #gamble-button, #choose-red, #choose-black {
+                width: 100%;
+                max-width: none;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slot-machine">
+        <div class="reels">
+            <div class="reel-row">
+                <div class="reel" id="reel1_1">🍒</div>
+                <div class="reel" id="reel1_2">🍋</div>
+                <div class="reel" id="reel1_3">🍊</div>
+            </div>
+            <div class="reel-row">
+                <div class="reel" id="reel2_1">🍒</div>
+                <div class="reel" id="reel2_2">🍋</div>
+                <div class="reel" id="reel2_3">🍊</div>
+            </div>
+            <div class="reel-row">
+                <div class="reel" id="reel3_1">🍒</div>
+                <div class="reel" id="reel3_2">🍋</div>
+                <div class="reel" id="reel3_3">🍊</div>
+            </div>
+        </div>
+        <div class="controls">
+            <input type="number" id="bet-amount" placeholder="Unesite ulog" min="1">
+            <button id="spin-button">Spin</button>
+        </div>
+        <p id="result"></p>
+        <p id="balance">Stanje: 100</p>
+        <button id="gamble-button">Gamble</button>
+        <button id="choose-red">Crvena</button>
+        <button id="choose-black">Crna</button>
+    </div>
+    <script>
+        let balance = 100;  // Početno stanje
+        let lastWinAmount = 0;  // Poslednji osvojeni iznos
+
+        document.getElementById('spin-button').addEventListener('click', function() {
+            const betAmount = parseInt(document.getElementById('bet-amount').value, 10);
+            const result = document.getElementById('result');
+            const balanceDisplay = document.getElementById('balance');
+            const gambleButton = document.getElementById('gamble-button');
+            const chooseRed = document.getElementById('choose-red');
+            const chooseBlack = document.getElementById('choose-black');
+
+            if (isNaN(betAmount) || betAmount <= 0) {
+                result.textContent = 'Unesite ispravan iznos uloga.';
+                return;
+            }
+
+            if (betAmount > balance) {
+                result.textContent = 'Nemate dovoljno sredstava za ovaj ulog.';
+                return;
+            }
+
+            const symbols = ['🍒', '🍋', '🍊', '🍉', '⭐', '<img src="danilo.png" alt="Danilo">'];
+            const reels = [
+                [document.getElementById('reel1_1'), document.getElementById('reel1_2'), document.getElementById('reel1_3')],
+                [document.getElementById('reel2_1'), document.getElementById('reel2_2'), document.getElementById('reel2_3')],
+                [document.getElementById('reel3_1'), document.getElementById('reel3_2'), document.getElementById('reel3_3')]
+            ];
+
+            // Randomly select symbols for each reel
+            for (let row of reels) {
+                for (let reel of row) {
+                    reel.innerHTML = symbols[Math.floor(Math.random() * symbols.length)];
+                }
+            }
+
+            // Check for win
+            let win = false;
+            // Check rows and columns
+            for (let i = 0; i < 3; i++) {
+                if (reels[i][0].innerHTML === reels[i][1].innerHTML && reels[i][1].innerHTML === reels[i][2].innerHTML) {
+                    win = true;
+                }
+                if (reels[0][i].innerHTML === reels[1][i].innerHTML && reels[1][i].innerHTML === reels[2][i].innerHTML) {
+                    win = true;
+                }
+            }
+            // Check diagonals
+            if (reels[0][0].innerHTML === reels[1][1].innerHTML && reels[1][1].innerHTML === reels[2][2].innerHTML) {
+                win = true;
+            }
+            if (reels[0][2].innerHTML === reels[1][1].innerHTML && reels[1][1].innerHTML === reels[2][0].innerHTML) {
+                win = true;
+            }
+
+            if (win) {
+                lastWinAmount = betAmount * 10;  // Dobitak je 10 puta veći od uloga
+                balance += lastWinAmount;
+                result.textContent = `Pobeda! Osvojili ste ${lastWinAmount} jedinica.`;
+                gambleButton.style.display = 'inline-block';  // Prikaži dugme za kockanje
+            } else {
+                balance -= betAmount;
+                result.textContent = 'Nema dobitka, pokušajte ponovo.';
+                gambleButton.style.display = 'none';  // Sakrij dugme za kockanje
+                chooseRed.style.display = 'none';  // Sakrij dugmad za biranje boje
+                chooseBlack.style.display = 'none';
+            }
+
+            balanceDisplay.textContent = `Stanje: ${balance}`;
+
+            if (balance <= 0) {
+                result.textContent = 'Nemate više sredstava za igru. Igra je završena.';
+                document.getElementById('spin-button').disabled = true;
+                gambleButton.style.display = 'none';  // Sakrij dugme za kockanje
+                chooseRed.style.display = 'none';  // Sakrij dugmad za biranje boje
+                chooseBlack.style.display = 'none';
+            }
+        });
+
+        document.getElementById('gamble-button').addEventListener('click', function() {
+            const chooseRed = document.getElementById('choose-red');
+            const chooseBlack = document.getElementById('choose-black');
+
+            chooseRed.style.display = 'inline-block';  // Prikaži dugmad za biranje boje
+            chooseBlack.style.display = 'inline-block';
+        });
+
+        document.getElementById('choose-red').addEventListener('click', function() {
+            gamble('red');
+        });
+
+        document.getElementById('choose-black').addEventListener('click', function() {
+            gamble('black');
+        });
+
+        function gamble(choice) {
+            const result = document.getElementById('result');
+            const balanceDisplay = document.getElementById('balance');
+            const gambleButton = document.getElementById('gamble-button');
+            const chooseRed = document.getElementById('choose-red');
+            const chooseBlack = document.getElementById('choose-black');
+
+            const colors = ['red', 'black'];
+            const selectedColor = colors[Math.floor(Math.random() * colors.length)];
+
+            if (selectedColor === choice) {
+                balance += lastWinAmount;
+                result.textContent = `Sreća! Udvostručili ste svoj dobitak na ${lastWinAmount * 2} jedinica.`;
+            } else {
+                balance -= lastWinAmount;
+                result.textContent = 'Izgubili ste dobitak.';
+            }
+
+            balanceDisplay.textContent = `Stanje: ${balance}`;
+            gambleButton.style.display = 'none';  // Sakrij dugme za kockanje
+            chooseRed.style.display = 'none';  // Sakrij dugmad za biranje boje
+            chooseBlack.style.display = 'none';
+
+            if (balance <= 0) {
+                result.textContent = 'Nemate više sredstava za igru. Igra je završena.';
+                document.getElementById('spin-button').disabled = true;
+            }
+        }
+    </script>
+</body>
+</html>
