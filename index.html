@@ -62,7 +62,7 @@
             max-width: 200px;
         }
 
-        #spin-button, #gamble-button, #choose-red, #choose-black {
+        #spin-button, #gamble-button, #choose-red, #choose-black, #take-money {
             padding: 10px 20px;
             font-size: 1em;
             cursor: pointer;
@@ -76,7 +76,7 @@
             font-size: 1.2em;
         }
 
-        #gamble-button, #choose-red, #choose-black {
+        #gamble-button, #choose-red, #choose-black, #take-money {
             display: none;  /* Initial hidden state */
         }
 
@@ -86,6 +86,33 @@
             border-radius: 5px;
         }
 
+        .cards {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .card {
+            width: 40px;
+            height: 60px;
+            background-color: #fff;
+            border: 1px solid #000;
+            border-radius: 5px;
+            margin: 0 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+        }
+
+        .card.red {
+            color: red;
+        }
+
+        .card.black {
+            color: black;
+        }
+
         @media (max-width: 600px) {
             .reel {
                 font-size: 1.5em;
@@ -93,10 +120,16 @@
                 height: 40px;
             }
 
-            #bet-amount, #spin-button, #gamble-button, #choose-red, #choose-black {
+            #bet-amount, #spin-button, #gamble-button, #choose-red, #choose-black, #take-money {
                 width: 100%;
                 max-width: none;
                 margin: 10px 0;
+            }
+
+            .card {
+                width: 30px;
+                height: 50px;
+                font-size: 1em;
             }
         }
     </style>
@@ -129,10 +162,15 @@
         <button id="gamble-button">Gamble</button>
         <button id="choose-red">Crvena</button>
         <button id="choose-black">Crna</button>
+        <button id="take-money">Uzmi novac</button>
+        <div class="cards" id="cards-container"></div>
     </div>
     <script>
         let balance = 100;  // Početno stanje
         let lastWinAmount = 0;  // Poslednji osvojeni iznos
+        let currentGambleCount = 0;
+        const maxGambleCount = 8;
+        let correctGuesses = 0;
 
         document.getElementById('spin-button').addEventListener('click', function() {
             const betAmount = parseInt(document.getElementById('bet-amount').value, 10);
@@ -141,6 +179,7 @@
             const gambleButton = document.getElementById('gamble-button');
             const chooseRed = document.getElementById('choose-red');
             const chooseBlack = document.getElementById('choose-black');
+            const takeMoney = document.getElementById('take-money');
 
             if (isNaN(betAmount) || betAmount <= 0) {
                 result.textContent = 'Unesite ispravan iznos uloga.';
@@ -196,6 +235,8 @@
                 gambleButton.style.display = 'none';  // Sakrij dugme za kockanje
                 chooseRed.style.display = 'none';  // Sakrij dugmad za biranje boje
                 chooseBlack.style.display = 'none';
+                takeMoney.style.display = 'none';  // Sakrij dugme za uzimanje novca
+                document.getElementById('cards-container').innerHTML = '';  // Resetuj karte
             }
 
             balanceDisplay.textContent = `Stanje: ${balance}`;
@@ -206,15 +247,32 @@
                 gambleButton.style.display = 'none';  // Sakrij dugme za kockanje
                 chooseRed.style.display = 'none';  // Sakrij dugmad za biranje boje
                 chooseBlack.style.display = 'none';
+                takeMoney.style.display = 'none';  // Sakrij dugme za uzimanje novca
+                document.getElementById('cards-container').innerHTML = '';  // Resetuj karte
             }
         });
 
         document.getElementById('gamble-button').addEventListener('click', function() {
             const chooseRed = document.getElementById('choose-red');
             const chooseBlack = document.getElementById('choose-black');
+            const takeMoney = document.getElementById('take-money');
 
             chooseRed.style.display = 'inline-block';  // Prikaži dugmad za biranje boje
             chooseBlack.style.display = 'inline-block';
+            takeMoney.style.display = 'inline-block';  // Prikaži dugme za uzimanje novca
+            currentGambleCount = 0;
+            correctGuesses = 0;
+
+            // Pokaži prve tri karte
+            const cardsContainer = document.getElementById('cards-container');
+            cardsContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const cardColor = (Math.random() < 0.5) ? 'red' : 'black';
+                const card = document.createElement('div');
+                card.classList.add('card', cardColor);
+                card.textContent = cardColor === 'red' ? '♥' : '♠';
+                cardsContainer.appendChild(card);
+            }
         });
 
         document.getElementById('choose-red').addEventListener('click', function() {
@@ -225,33 +283,68 @@
             gamble('black');
         });
 
+        document.getElementById('take-money').addEventListener('click', function() {
+            const result = document.getElementById('result');
+            result.textContent = `Uzeli ste ${lastWinAmount} jedinica.`;
+            resetGamble();
+        });
+
         function gamble(choice) {
             const result = document.getElementById('result');
             const balanceDisplay = document.getElementById('balance');
             const gambleButton = document.getElementById('gamble-button');
             const chooseRed = document.getElementById('choose-red');
             const chooseBlack = document.getElementById('choose-black');
+            const takeMoney = document.getElementById('take-money');
 
-            const colors = ['red', 'black'];
-            const selectedColor = colors[Math.floor(Math.random() * colors.length)];
+            const cardsContainer = document.getElementById('cards-container');
+            const cardColor = (Math.random() < 0.5) ? 'red' : 'black';
+            const card = document.createElement('div');
+            card.classList.add('card', cardColor);
+            card.textContent = cardColor === 'red' ? '♥' : '♠';
+            cardsContainer.appendChild(card);
 
-            if (selectedColor === choice) {
-                balance += lastWinAmount;
-                result.textContent = `Sreća! Udvostručili ste svoj dobitak na ${lastWinAmount * 2} jedinica.`;
+            if (cardColor === choice) {
+                correctGuesses++;
+                if (correctGuesses >= 2) {
+                    takeMoney.style.display = 'inline-block';  // Prikaži dugme za uzimanje novca
+                }
+                lastWinAmount *= 2;
+                result.textContent = `Sreća! Udvostručili ste svoj dobitak na ${lastWinAmount} jedinica.`;
+                currentGambleCount++;
+                if (currentGambleCount >= maxGambleCount) {
+                    result.textContent += ' Dostigli ste maksimalan broj kockanja.';
+                    resetGamble();
+                }
             } else {
-                balance -= lastWinAmount;
                 result.textContent = 'Izgubili ste dobitak.';
+                lastWinAmount = 0;
+                resetGamble();
             }
 
             balanceDisplay.textContent = `Stanje: ${balance}`;
-            gambleButton.style.display = 'none';  // Sakrij dugme za kockanje
-            chooseRed.style.display = 'none';  // Sakrij dugmad za biranje boje
-            chooseBlack.style.display = 'none';
 
             if (balance <= 0) {
                 result.textContent = 'Nemate više sredstava za igru. Igra je završena.';
                 document.getElementById('spin-button').disabled = true;
             }
+        }
+
+        function resetGamble() {
+            const gambleButton = document.getElementById('gamble-button');
+            const chooseRed = document.getElementById('choose-red');
+            const chooseBlack = document.getElementById('choose-black');
+            const takeMoney = document.getElementById('take-money');
+            const cardsContainer = document.getElementById('cards-container');
+
+            gambleButton.style.display = 'none';  // Sakrij dugme za kockanje
+            chooseRed.style.display = 'none';  // Sakrij dugmad za biranje boje
+            chooseBlack.style.display = 'none';
+            takeMoney.style.display = 'none';  // Sakrij dugme za uzimanje novca
+            cardsContainer.innerHTML = '';  // Resetuj karte
+
+            balance += lastWinAmount;  // Dodaj osvojeni iznos na balans
+            document.getElementById('balance').textContent = `Stanje: ${balance}`;
         }
     </script>
 </body>
